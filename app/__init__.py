@@ -11,11 +11,6 @@ app = Flask(__name__,
             static_folder='static')
 
 app.config.from_object(Config)
-# Подключаем базу данных к приложению
-#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///../diploma_project.sqlite"
-
-# Отключаем вывод технических сообщений
-#app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Создаем саму базу данных - объект db
 db = SQLAlchemy(app)
