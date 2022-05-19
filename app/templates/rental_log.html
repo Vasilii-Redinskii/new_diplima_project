@@ -113,39 +113,19 @@
                                             </tr>
                                             </thead>
                                             <tbody>
+                                            {% for auto in auto_list %}
                                             <tr>
                                                 <td>
-                                                    <img src="/assets/images/auto/auto5.jpg" class="avatar">
+                                                    <img src="{{ auto.image[0] }}" class="avatar">
                                                 </td>
                                                 <td>
-                                                    <h6><a href="auto_detail.html">Mercedes CLA</a></h6>
+                                                    <h6><a href="{{ auto.get_absolute_url() }}">{{ auto.name }}</a></h6>
                                                 </td>
-                                                <td>2</td>
-                                                <td>30 мин</td>
-                                                <td>225 руб</td>
+                                                <td>{{ auto.count_rent}}</td>
+                                                <td>{{ auto.all_time_rent}}</td>
+                                                <td>{{ auto.total_cost_of_rent}}</td>
                                             </tr>
-                                            <tr>
-                                                <td>
-                                                    <img src="assets/images/auto/auto4.jpg" class="avatar">
-                                                </td>
-                                                <td>
-                                                    <h6><a href="auto_detail.html">Toyota Corolla</a></h6>
-                                                </td>
-                                                <td>1</td>
-                                                <td>10 мин</td>
-                                                <td>60 руб</td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <img src="assets/images/auto/auto3.jpg" class="avatar">
-                                                </td>
-                                                <td>
-                                                    <h6><a href="auto_detail.html">Hyundai Solaris</a></h6>
-                                                </td>
-                                                <td>3</td>
-                                                <td>10 мин</td>
-                                                <td>180 руб</td>
-                                            </tr>
+                                            {% endfor %}
                                             </tbody>
                                         </table>
                                     </div>

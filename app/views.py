@@ -1,10 +1,11 @@
+import shutil
+import os
+
 from app import app, db
 from app.models import Auto, Arenda, Image
 from flask import render_template, request, redirect, url_for
 from datetime import datetime
 from app.forms import AutoDetailForm, CreateAutoForm, AddImageForm, UpdateAutoForm
-from shutil import rmtree
-import os
 
 
 # Функция проверки требуемого расширения файла
@@ -16,7 +17,7 @@ def allowed_file(filename):
 @app.route('/index')
 @app.route('/')
 def index():
-    
+
     # Получаем все записи из таблицы Auto
     auto_list = Auto.query.all()
 
@@ -26,13 +27,14 @@ def index():
 
     return render_template('index.html', **context)
 
+
 # Страница детальной информации авто
 @app.route('/auto_detail/<int:auto_id>', methods=['POST', 'GET'])
 def auto_detail(auto_id):
 
-    #Получаем выгрузку данных по id авто
+    # Получаем выгрузку данных по id авто
     auto = Auto.query.get(auto_id)
-    #Проверка ввода данных пользователем
+    # Проверка ввода данных пользователем
     form = AutoDetailForm()
     form.validate_on_submit()
 
@@ -42,7 +44,7 @@ def auto_detail(auto_id):
     else:
         get_transmission = "Механика"
 
-       # Вывод аренды данного авто
+    # Вывод аренды данного авто
     rent_list = Arenda.query.filter_by(auto_id=auto.id)
     #  Добавленние данных вбазу по нажатию кнопки "Арендовать"/"завершить аренду"
     if form.validate_on_submit():
@@ -57,7 +59,7 @@ def auto_detail(auto_id):
             db.session.add(Arenda(auto_id=auto.id, date_free=datetime.now().replace(microsecond=0), date_rent=date_rent,
                                   in_rent_or_free=auto.in_rent_or_free, time_rent=time_rent, cost_of_rent=cost_of_rent))
 
-            auto.count_rent = db.session.query(Arenda).filter_by(auto_id= auto.id).count()
+            auto.count_rent = db.session.query(Arenda).filter_by(auto_id=auto.id).count()
 
         else:
             auto.date = datetime.now().replace(microsecond=0)
@@ -89,15 +91,15 @@ def auto_detail(auto_id):
     return render_template('auto_detail.html', **context, form=form)
 
 
-#Страница создания авто
+# Страница создания авто
 @app.route('/auto_create', methods=['POST', 'GET'])
 def auto_create():
 
     form = CreateAutoForm()
     err = False
     if form.validate_on_submit():
-        
-        # Пришел запрос с методом POST (пользователь нажал на кнопку 'Добавить auto')
+
+        # Пришел запрос с методом POST (пользователь нажал на кнопку 'Создать')
         # Получаем название auto - это значение поля input с атрибутом name="name"
         auto_name = form.name.data
 
@@ -112,7 +114,7 @@ def auto_create():
 
         # Получаем картинку auto
         file = form.main_image.data
-        #Проверяем расширение картинки, если правда
+        # Проверяем расширение картинки, если правда
         if allowed_file(file.filename):
 
             # Добавляем auto в базу данных
@@ -132,7 +134,7 @@ def auto_create():
                 print('Папку не создать, причина:', e)
             finally:
                 main_image = f'assets/images/auto/{auto.id}/{file.filename}'
-            #Сохраняем картинку в созданную или существующую папку
+            # Сохраняем картинку в созданную или существующую папку
             file.save(os.path.join(app.config['STATIC_ROOT'], main_image))
 
             # Добавляем image в базу данных
@@ -149,20 +151,20 @@ def auto_create():
     return render_template('auto_create.html', form=form, err=err)
 
 
-#Страница обновления информации об авто
+# Страница обновления информации об авто
 @app.route('/auto_update/<int:auto_id>', methods=['POST', 'GET'])
 def auto_update(auto_id):
     auto = Auto.query.get(auto_id)
     rent_list = Arenda.query.filter_by(auto_id=auto.id).all()
     img_list = Image.query.filter_by(auto_id=auto.id).all()
     form = UpdateAutoForm(name=auto.name, description=auto.description, price=auto.price,
-                           main_image=auto.image)
+                           main_image=auto.image, transmission=auto.transmission)
 
     if form.validate_on_submit():
 
         action = request.form.get('action', '')
         if action == 'save':
-            # Пришел запрос с методом POST (пользователь нажал на кнопку 'Изменить')
+            # Пришел запрос с методом POST (пользователь нажал на кнопку 'Сохранить')
             # Получаем новое название auto - это значение поля input с атрибутом name="name"
             auto.name = form.name.data
 
@@ -173,41 +175,47 @@ def auto_update(auto_id):
             auto.price = form.price.data
 
             # Получаем новое АКПП auto - это значение поля input с атрибутом name="transmission"
-            auto_transmission = form.transmission.data
-            auto.transmission = auto_transmission
+            auto.transmission = form.transmission.data
 
             # Получаем новые картинку auto
             file = form.main_image.data
 
             # Проверяем расширение картинки, если правда
             if allowed_file(file.filename):
+                # Ищем первую картинку для замены
                 try:
                     old_image = os.path.join(app.config['STATIC_ROOT'], img_list[0].img_url)
+                # Если нет картинок, отправляем на страницу добавления картинок к авто
                 except:
                     return redirect(f'/auto_images/{auto.id}')
-
+                # Определяем путь к новой картинке
                 main_image = f'assets/images/auto/{auto.id}/{file.filename}'
                 # Заменяем путь image в базе данных
                 image = Image.query.get(img_list[0].id)
                 image.img_url = main_image
-                # Сохраняем картинку в созданную или существующую папку
+                # Сохраняем картинку в существующую папку
                 file.save(os.path.join(app.config['STATIC_ROOT'], main_image))
-                # Удаляем файл картинки из папки авто
+                # Удаляем файл старой картинки из папки авто
                 if os.path.isfile(old_image):
                     os.remove(old_image)
 
             # сохраняем изменения в базе
             db.session.commit()
 
+        elif action == 'del':
+            # Пришел запрос с методом POST (пользователь нажал на кнопку 'Удалить')
+            return redirect(f'/del_auto/{auto.id}')
+
     return render_template('auto_update.html', form=form, rent_list=rent_list, img_list=img_list, id=auto.id)
 
 
+# Страница добавления картинок авто
 @app.route('/auto_images/<int:auto_id>', methods=['POST', 'GET'])
 def auto_images(auto_id):
     auto = Auto.query.get(auto_id)
-
+    # Переменная для вывода ошибки
     err = False
-
+    # Получаем и выводим список ошибок по id авто
     image_list = Image.query.filter_by(auto_id=auto.id).all()
     url_list = []
     for img in image_list:
@@ -218,14 +226,16 @@ def auto_images(auto_id):
     form.validate_on_submit()
 
     if form.validate_on_submit():
+        # Пришел запрос с методом POST (пользователь нажал на кнопку )
         action = request.form.get('action', '')
+        # Кнопка добавить
         if action == 'add':
             # Получаем картинку auto
             file = form.main_image.data
             # Проверяем расширение картинки, если правда
             if allowed_file(file.filename):
                 main_image = f'assets/images/auto/{auto.id}/{file.filename}'
-                #Проверяем есть ли файл с тем же названием
+                # Проверяем есть ли файл с тем же названием
                 if main_image not in url_list:
                     # Сохраняем картинку в существующую папку auto.id
                     file.save(os.path.join(app.config['STATIC_ROOT'], main_image))
@@ -238,13 +248,14 @@ def auto_images(auto_id):
                     db.session.commit()
                     return redirect(success_url)
                 else:
+                    # Если файл есть выводим ошибку
                     err = f'Уже есть такой файл.'
-
+            # Если пытались сохранить не картинку выводим ошибку
             else:
                 err = f'Файл не является картинкой'
-
+        # Кнопка удалить
         elif action == 'del':
-
+            # удаляем картинку
             db.session.delete(image_list[0])
             # сохраняем изменения в базе
             db.session.commit()
@@ -253,57 +264,62 @@ def auto_images(auto_id):
     context = {
         'id': auto.id,
         'name': auto.name,
-        'img_list': image_list
+        'img_list': image_list,
+        'err': err
     }
 
     db.session.commit()
 
-    return render_template('auto_images.html', **context, form=form, err=err)
+    return render_template('auto_images.html', **context, form=form)
 
 
+# Страница лога аренды авто
 @app.route('/rental_log')
 def rental_log():
     auto_list = Auto.query.all()
-        
+
     context = {
         'auto_list': auto_list,
     }
     return render_template('rental_log.html', **context)
 
 
-@app.route('/del_auto/<int:auto_id>', methods=['POST'])
+# Страница удаления авто авто
+@app.route('/del_auto/<int:auto_id>', methods=['GET'])
 def del_auto(auto_id):
     auto = Auto.query.get(auto_id)
-    # rent_list = Arenda.query.filter_by(auto_id = auto.id)
+
     context = {
         'id': auto.id,
         'name': auto.name
     }
-    # for rent in rent_list:
-    # db.session.delete(rent)
+    # Удаляем папку со всем содержимым
+    path = os.path.join(app.config['STATIC_ROOT'], f'assets/images/auto/{auto.id}')
 
+    shutil.rmtree(path, ignore_errors=True, onerror=None)
+    # Удаляем все записи авто
     db.session.delete(auto)
     db.session.commit()
 
     return render_template('del_auto.html', **context)
 
+
 # функция удаления картинки авто на странце редактирования картинок auto_images
 @app.route('/del_image/<int:auto_id>/<int:img_id>', methods=['GET', 'POST'])
 def del_image(auto_id, img_id):
-    #Получаем информацию о требуемой картинке
+    # Получаем информацию о требуемой картинке
     auto = Auto.query.get(auto_id)
-    del_image = Image.query.get(img_id)
-    path_image = os.path.join(app.config['STATIC_ROOT'], del_image.img_url)
+    del_img = Image.query.get(img_id)
+    path_image = os.path.join(app.config['STATIC_ROOT'], del_img.img_url)
 
-    #Удаляем строку картинки из базы данных
-    db.session.delete(del_image)
+    # Удаляем строку картинки из базы данных
+    db.session.delete(del_img)
     # сохраняем изменения в базе
     db.session.commit()
 
-    #Удаляем файл картинки из папки авто
+    # Удаляем файл картинки из папки авто
     if os.path.isfile(path_image):
         os.remove(path_image)
 
     # Страница возврата
     return redirect(url_for('auto_images', auto_id=auto.id))
-

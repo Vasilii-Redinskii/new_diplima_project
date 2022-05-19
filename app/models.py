@@ -8,11 +8,7 @@ class Auto(db.Model):
     name = db.Column(db.String(128), unique=True)
     description = db.Column(db.String())    
     price = db.Column(db.Float)
-    transmission = db.Column(db.Boolean)
-    img_url_1 = db.Column(db.String(128))
-    img_url_2 = db.Column(db.String(128))
-    img_url_3 = db.Column(db.String(128))
-    img_url_4 = db.Column(db.String(128))
+    transmission = db.Column(db.Integer)
     in_rent_or_free = db.Column(db.Boolean, default=False)
     all_time_rent = db.Column(db.Float)
     date = db.Column(db.DateTime, default=datetime.now)
@@ -24,7 +20,6 @@ class Auto(db.Model):
     @property
     def logo_url(self):
         return f'/static/{self.logo}' if self.logo else ''
-
 
     def get_absolute_url(self):
         return url_for('auto_detail', auto_id=self.id)

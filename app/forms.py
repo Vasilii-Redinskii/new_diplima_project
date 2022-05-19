@@ -13,8 +13,8 @@ class CreateAutoForm(FlaskForm):
     name = StringField('name', validators=[DataRequired()])
     description = StringField('description', validators=[DataRequired()])
     price = DecimalField('price', validators=[DataRequired()], places=2)
-    transmission = RadioField('transmission', validators=[DataRequired()], coerce=bool,
-                              choices=[(True, 'ДА'), (False, 'НЕТ')])
+    transmission = RadioField('transmission', validators=[DataRequired()], coerce=int,
+                              choices=[(1, 'ДА'), (0, 'НЕТ')])
     main_image = FileField('main_image', validators=[DataRequired()])
 
     def validate_name(self, field):
@@ -27,15 +27,15 @@ class UpdateAutoForm(FlaskForm):
     name = StringField('name', validators=[DataRequired()])
     description = StringField('description', validators=[DataRequired()])
     price = DecimalField('price', validators=[DataRequired()], places=2)
-    transmission = RadioField('transmission', validators=[DataRequired()], coerce=bool,
-                              choices=[(True, 'ДА'), (False, 'НЕТ')])
+    transmission = RadioField('transmission', coerce=int,
+                              choices=[(1, 'ДА'), (0, 'НЕТ')])
     main_image = FileField('main_image')
 
     def validate_name(self, field):
         if Auto.query.filter_by(name=field.data).first():
-            if field.data!=field.object_data:
+            if field.data != field.object_data:
                 raise ValidationError(
-                f"Название {self.name.data} {field.object_data}уже использовано, введите другое")
+                    f"Название {self.name.data} {field.object_data}уже использовано, введите другое")
 
 
 class AddImageForm(FlaskForm):
